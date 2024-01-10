@@ -68,6 +68,11 @@ function main(matched_bot)
 		-- https://developer.amazon.com/support/amazonbot
 		bot_domains = {".crawl.amazonbot.amazon"}
 		bot_name = "Amazonbot"
+	elseif matched_bot == "python-requests" then
+		bot_name = "python-requests"
+
+		m.setvar("tx.fake-bot-plugin_bot_name", bot_name)
+		return string.format("Fake Bot Plugin: Detected bad bot %s.", bot_name)
 	else
 		return nil
 	end
