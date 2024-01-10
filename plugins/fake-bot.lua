@@ -41,7 +41,7 @@ function main(matched_bot)
 	end
 	if matched_bot == "googlebot" then
 		-- https://developers.google.com/search/docs/advanced/crawling/verifying-googlebot
-		bot_domains = {".googlebot.com", ".google.com"}
+		bot_domains = {".googlebot.com", ".google.com", "googleusercontent.com"}
 		bot_name = "Googlebot"
 	elseif matched_bot == "facebookexternalhit" or matched_bot == "facebookcatalog" or matched_bot == "facebookbot" then
 		-- https://developers.facebook.com/docs/sharing/webmasters/crawler/
