@@ -54,7 +54,7 @@ function _M:new()
 	end
 
 	return setmetatable({bot_domains = bot_domains, bot_name = bot_name,
-						 hosts = socket.dns.getnameinfo(remote_addr), config = config}, mt)
+						 hosts = socket.dns.getnameinfo(remote_addr), config = config, user_agent = user_agent}, mt)
 end
 
 function _M:ends_with(str, ending)
@@ -63,7 +63,7 @@ function _M:ends_with(str, ending)
 	return ending == "" or str:sub(-#ending) == ending
 end
 
-function _M:checkUserAgent()
+function _M:checkFakeBot()
 	for _, host in pairs(self.hosts) do
 		for _, domain in pairs(self.bot_domains) do
 			if self.ends_with(nil, host, domain) then
@@ -72,7 +72,7 @@ function _M:checkUserAgent()
 					for _, ips in pairs(addrinfo) do
 						for _, ip in pairs(ips) do
 							if self.remote_addr == ip then
-								return {bot = false}
+								return false
 							end
 						end
 					end
@@ -82,10 +82,10 @@ function _M:checkUserAgent()
 	end
 
 	if next(self.bot_domains) == nil then
-		return {bot = false}
+		return false
 	end
 
-	return {bot = true}
+	return true
 end
 
 function _M:checkRemoteIP()
@@ -93,11 +93,23 @@ function _M:checkRemoteIP()
 
 	for _, banned_ip in ipairs(security_config.banned_ips) do
 		if banned_ip == ngx.var.remote_addr then
-			return {banned_ip_address = true}
+			return true
 		end
 	end
 
-	return {safe = true}
+	return false
+end
+
+function _M:checkUserAgent()
+	local security_config = lyaml.load(self.config)
+
+	for _, banned_user_agent in ipairs(security_config.banned_user_agents) do
+		if self.user_agent:match(banned_user_agent) then
+			return true
+		end
+	end
+
+	return false
 end
 
 function updateConfig()
