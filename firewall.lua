@@ -72,6 +72,7 @@ function _M:checkFakeBot()
 					for _, ips in pairs(addrinfo) do
 						for _, ip in pairs(ips) do
 							if self.remote_addr == ip then
+								ngx.log(ngx.ERR, "Fake bot detected. Bot name: " .. self.bot_name .. ", Origin: " .. ip)
 								return false
 							end
 						end
@@ -93,6 +94,7 @@ function _M:checkRemoteIP()
 
 	for _, banned_ip in ipairs(security_config.banned_ips) do
 		if banned_ip == ngx.var.remote_addr then
+			ngx.log(ngx.ERR, "Banned IP address detected. IP: " .. ngx.var.remote_addr)
 			return true
 		end
 	end
@@ -105,6 +107,7 @@ function _M:checkUserAgent()
 
 	for _, banned_user_agent in ipairs(security_config.banned_user_agents) do
 		if self.user_agent:match(banned_user_agent) then
+			ngx.log(ngx.ERR, "Banned user agent detected. User Agent: " .. self.user_agent)
 			return true
 		end
 	end
