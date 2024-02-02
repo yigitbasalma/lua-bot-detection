@@ -1,4 +1,5 @@
 local socket = require("socket")
+local lyaml = require("lyaml")
 
 local _M = {
     _VERSION = '0.17.1',
@@ -6,8 +7,14 @@ local _M = {
 
 local mt = { __index = _M }
 
-function _M:new(userAgent, remote_addr)
-	local user_agent = string.lower(userAgent)
+function _M:new()
+	local user_agent = string.lower(ngx.var.http_user_agent)
+	local config = ngx.shared.f_shared:get(ngx.var.server_name .. "_security_config")
+
+	if not config then
+		ngx.log(ngx.ERR, "Config not found in shared memory zone. Reading from file.")
+		config = updateConfig()
+	end
 
 	if user_agent:match(".*googlebot.*") then
 		-- https://developers.google.com/search/docs/advanced/crawling/verifying-googlebot
@@ -46,8 +53,8 @@ function _M:new(userAgent, remote_addr)
 		bot_name = ""
 	end
 
-	return setmetatable({bot_domains = bot_domains, bot_name = bot_name, remote_addr = remote_addr,
-						 hosts = socket.dns.getnameinfo(remote_addr)}, mt)
+	return setmetatable({bot_domains = bot_domains, bot_name = bot_name,
+						 hosts = socket.dns.getnameinfo(remote_addr), config = config}, mt)
 end
 
 function _M:ends_with(str, ending)
@@ -56,14 +63,14 @@ function _M:ends_with(str, ending)
 	return ending == "" or str:sub(-#ending) == ending
 end
 
-function _M:check()
-	for k1, host in pairs(self.hosts) do
-		for k2, domain in pairs(self.bot_domains) do
+function _M:checkUserAgent()
+	for _, host in pairs(self.hosts) do
+		for _, domain in pairs(self.bot_domains) do
 			if self.ends_with(nil, host, domain) then
 				addrinfo = socket.dns.getaddrinfo(host)
 				if addrinfo ~= nil then
-					for k3, ips in pairs(addrinfo) do
-						for k4, ip in pairs(ips) do
+					for _, ips in pairs(addrinfo) do
+						for _, ip in pairs(ips) do
 							if self.remote_addr == ip then
 								return {bot = false}
 							end
@@ -81,5 +88,30 @@ function _M:check()
 	return {bot = true}
 end
 
-local m = _M.new(nil, "Mozilla/5.0 (platform; rv:geckoversion) Gecko/geckotrail Firefox/firefoxversion", "31.0.0.1")
-print(m:check()["bot"])
+function _M:checkRemoteIP()
+	local security_config = lyaml.load(self.config)
+
+	for _, banned_ip in ipairs(security_config.banned_ips) do
+		if banned_ip == ngx.var.remote_addr then
+			return {banned_ip_address = true}
+		end
+	end
+
+	return {safe = true}
+end
+
+function updateConfig()
+	local file, err = io.open("/etc/nginx/lua/" .. ngx.var.server_name .. "_security.yaml", "r")
+	if not file then
+		ngx.log(ngx.ERR, "Error opening file:", err)
+		return
+	end
+
+	local yamlContent = file:read("*a")
+	file:close()
+
+	ngx.shared.f_shared:set(ngx.var.server_name .. "_security_config", yamlContent, 300)
+	return yamlContent
+end
+
+return _M
