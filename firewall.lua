@@ -54,7 +54,7 @@ function _M:new()
 	end
 
 	return setmetatable({bot_domains = bot_domains, bot_name = bot_name,
-						 hosts = socket.dns.getnameinfo(remote_addr), config = config, user_agent = user_agent}, mt)
+						 hosts = socket.dns.getnameinfo(ngx.var.remote_addr), config = config, user_agent = user_agent}, mt)
 end
 
 function _M:ends_with(str, ending)
@@ -72,7 +72,6 @@ function _M:checkFakeBot()
 					for _, ips in pairs(addrinfo) do
 						for _, ip in pairs(ips) do
 							if self.remote_addr == ip then
-								ngx.log(ngx.ERR, "Fake bot detected. Bot name: " .. self.bot_name .. ", Origin: " .. ip)
 								return false
 							end
 						end
@@ -86,11 +85,16 @@ function _M:checkFakeBot()
 		return false
 	end
 
+	ngx.log(ngx.ERR, "Fake bot detected. Bot name: " .. self.bot_name .. ", Origin: " .. ngx.var.remote_addr)
 	return true
 end
 
 function _M:checkRemoteIP()
 	local security_config = lyaml.load(self.config)
+
+	if not security_config.banned_ips then
+		return false
+	end
 
 	for _, banned_ip in ipairs(security_config.banned_ips) do
 		if banned_ip == ngx.var.remote_addr then
@@ -105,6 +109,10 @@ end
 function _M:checkUserAgent()
 	local security_config = lyaml.load(self.config)
 
+	if not security_config.banned_user_agents then
+		return false
+	end
+
 	for _, banned_user_agent in ipairs(security_config.banned_user_agents) do
 		if self.user_agent:match(banned_user_agent) then
 			ngx.log(ngx.ERR, "Banned user agent detected. User Agent: " .. self.user_agent)
@@ -116,7 +124,7 @@ function _M:checkUserAgent()
 end
 
 function updateConfig()
-	local file, err = io.open("/etc/nginx/lua/" .. ngx.var.server_name .. "_security.yaml", "r")
+	local file, err = io.open("/etc/nginx/conf/wafconf/" .. ngx.var.server_name .. "_security.yaml", "r")
 	if not file then
 		ngx.log(ngx.ERR, "Error opening file:", err)
 		return
