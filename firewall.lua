@@ -45,9 +45,33 @@ function _M:new()
 		-- https://developer.amazon.com/support/amazonbot
 		bot_domains = {".crawl.amazonbot.amazon"}
 		bot_name = "Amazonbot"
-	elseif user_agent:match(".*python-requests.*") then
-		bot_domains = {".python-requests"}
-		bot_name = "python-requests"
+	elseif user_agent:match(".*yandexbot.*") then
+		bot_domains = {".yandex.com", ".yandex.ru", ".yandex.net"}
+		bot_name = "YandexBot"
+	elseif user_agent:match(".*duckduckbot.*") then
+		bot_domains = {"..duckduckgo.com"}
+		bot_name = "DuckDuckBot"
+	elseif user_agent:match(".*baiduspider.*") then
+		bot_domains = {".baidu.com"}
+		bot_name = "BaiduSpider"
+	elseif user_agent:match(".*pinterest.*") then
+		bot_domains = {".pinterest.com"}
+		bot_name = "Pinterestbot"
+	elseif user_agent:match(".*sogou.*") then
+		bot_domains = {".sogou.com"}
+		bot_name = "Sogou Spider"
+	elseif user_agent:match(".*exabot.*") then
+		bot_domains = {".exabot.com"}
+		bot_name = "Exabot"
+	elseif user_agent:match(".*slackbot.*") then
+		bot_domains = {".slack.com"}
+		bot_name = "Slackbot"
+	elseif user_agent:match(".*whatsapp.*") then
+		bot_domains = {".whatsapp.com"}
+		bot_name = "WhatsAppbot"
+	elseif user_agent:match(".*telegrambot.*") then
+		bot_domains = {".telegram.org"}
+		bot_name = "TelegramBot"
 	else
 		bot_domains = {}
 		bot_name = ""
@@ -64,6 +88,10 @@ function _M:ends_with(str, ending)
 end
 
 function _M:checkFakeBot()
+	if next(self.bot_domains) == nil then
+		return false
+	end
+
 	for _, host in pairs(self.hosts) do
 		for _, domain in pairs(self.bot_domains) do
 			if self.ends_with(nil, host, domain) then
@@ -79,10 +107,6 @@ function _M:checkFakeBot()
 				end
 			end
 		end
-	end
-
-	if next(self.bot_domains) == nil then
-		return false
 	end
 
 	ngx.log(ngx.ERR, "Fake bot detected. Bot name: " .. self.bot_name .. ", Origin: " .. ngx.var.remote_addr)
