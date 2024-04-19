@@ -21,4 +21,5 @@ jobs:
           echo "::set-output name=changed_files::$changed_files"
 
       - name: Print changed files
-        run: echo "Changed files: ${{ steps.changed_files.outputs.changed_files }}"
+        run: |
+          echo "Changed files: ${{ steps.changed_files.outputs.changed_files }}"
