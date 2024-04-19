@@ -17,7 +17,7 @@ jobs:
         id: changed_files
         run: |
           git fetch --prune --unshallow
-          changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | python -c 'import sys; a=sys.stdin("/")[0]; print(a))')
+          changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | python -c 'import sys; a=sys.stdin("/")[0]; print(a)')
           echo "::set-output name=changed_files::$changed_files"
 
       - name: Print changed files
